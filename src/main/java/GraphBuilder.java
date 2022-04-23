@@ -27,6 +27,8 @@ public class GraphBuilder extends Application {
     public static double minY = Double.MAX_VALUE;
     public static double maxY = Double.MIN_VALUE;
 
+    public static final boolean PRINT_DOTS = false;
+
     public static ArrayList<Spline> splines;
 
 
@@ -52,7 +54,7 @@ public class GraphBuilder extends Application {
         XYChart.Series functionSeries = new XYChart.Series();
         functionSeries.setName("Original function: " + equation);
 
-        ArrayList<Dot> dots = analyticSolution.getDots((int)(endX - startX)*50, startX, endX, false);
+        ArrayList<Dot> dots = analyticSolution.getDots((int)(endX - startX)*25, startX, endX, false);
 
         for (Dot dot: dots) {
             functionSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
@@ -60,15 +62,7 @@ public class GraphBuilder extends Application {
 
         lineChart.getData().add(functionSeries);
 
-        //Точки
-        XYChart.Series dotSeries = new XYChart.Series();
-        dotSeries.setName("Dots to interpolate");
 
-        for (Dot dot: methodSolutionDots) {
-            dotSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
-        }
-
-        lineChart.getData().add(dotSeries);
 
         //Интерполяция
         XYChart.Series interpolationSeries = new XYChart.Series();
@@ -85,6 +79,19 @@ public class GraphBuilder extends Application {
         }
 
         lineChart.getData().add(interpolationSeries);
+
+        //Точки
+
+        if(PRINT_DOTS) {
+            XYChart.Series dotSeries = new XYChart.Series();
+            dotSeries.setName("Dots to interpolate");
+
+            for (Dot dot : methodSolutionDots) {
+                dotSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
+            }
+
+            lineChart.getData().add(dotSeries);
+        }
 
 
 

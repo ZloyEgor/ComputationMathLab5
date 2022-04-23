@@ -3,7 +3,7 @@ import java.util.Scanner;
 
 public class ConsoleHandler {
 
-    public static final double DEFAULT_STEP_LENGTH = 0.1;
+    public static final double DEFAULT_STEP_LENGTH = 0.01;
 
     public DifferentialEquationWithAnalyticSolution[] equations = {
             new DifferentialEquationWithAnalyticSolution(new DifferentialEquation(new FunctionTwoArguments() {
@@ -27,7 +27,75 @@ public class ConsoleHandler {
                     return c / Math.exp(2*x) + Math.pow(x, 2) / 2. - x / 2 + 1./ 4;
                 }
 
+            }),
+
+            new DifferentialEquationWithAnalyticSolution(new DifferentialEquation(new FunctionTwoArguments() {
+                @Override
+                public double get(double x, double y) {
+                    return Math.pow(x, 2) + 2 * x + y;
+                }
+
+                @Override
+                public String getFormula() {
+                    return "x^2 + 2x + y";
+                }
+            }), new AnalyticSolutionFunction() {
+                @Override
+                public void calculateC(double x, double y) {
+                    c = (y + Math.pow(x, 2) + 4 * x + 4) / Math.exp(x);
+                }
+
+                @Override
+                public double get(double x) {
+                    return c * Math.exp(x) - Math.pow(x, 2) - 4 * x - 4;
+                }
+
+            }),
+
+            new DifferentialEquationWithAnalyticSolution(new DifferentialEquation(new FunctionTwoArguments() {
+                @Override
+                public double get(double x, double y) {
+                    return -1 * (2 * y + 1) * 1 / Math.tan(x);
+                }
+
+                @Override
+                public String getFormula() {
+                    return "-(2y + 1) * ctg(x)";
+                }
+            }), new AnalyticSolutionFunction() {
+                @Override
+                public void calculateC(double x, double y) {
+                    c = 2 * Math.pow(Math.sin(x), 2) * (y + 1./2);
+                }
+
+                @Override
+                public double get(double x) {
+                    return c / (2 * Math.pow(Math.sin(x), 2)) - 1./2;
+                }
+            }),
+
+            new DifferentialEquationWithAnalyticSolution(new DifferentialEquation(new FunctionTwoArguments() {
+                @Override
+                public double get(double x, double y) {
+                    return 7 * Math.exp(x) - y;
+                }
+
+                @Override
+                public String getFormula() {
+                    return "7e^x - y";
+                }
+            }), new AnalyticSolutionFunction() {
+                @Override
+                public void calculateC(double x, double y) {
+                    c = (y - 7 * Math.exp(x) / 2) * Math.exp(x);
+                }
+
+                @Override
+                public double get(double x) {
+                    return 7 * Math.exp(x) / 2 + c / Math.exp(x);
+                }
             })
+
     };
 
 
@@ -118,8 +186,8 @@ public class ConsoleHandler {
 }
 
 class DifferentialEquationWithAnalyticSolution {
-    private DifferentialEquation equation;
-    private AnalyticSolutionFunction solutionFunction;
+    private final DifferentialEquation equation;
+    private final AnalyticSolutionFunction solutionFunction;
 
     public DifferentialEquationWithAnalyticSolution(DifferentialEquation equation, AnalyticSolutionFunction solutionFunction) {
         this.equation = equation;
