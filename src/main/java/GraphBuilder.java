@@ -9,107 +9,51 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
-import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class GraphBuilder extends Application {
 
-    //0: x^2 - 2x - 4
-    //1: sin(x)
-    //2: sqrt(x)
-    //other: -0.2x^3 + 1.3x^2 - 0.7x + 0.5
-
-    public static final int FUNCTION_NUMBER = 3;
-
-    public static final boolean MAKE_ERRORS = true;
-
-    public static final int DOT_AMOUNT = 4;
-
-    public static final double LEFT_INTERPOLATION_BORDER = -4;
-    public static final double RIGHT_INTERPOLATION_BORDER = 5;
-
     public static final int SCREEN_WIDTH = 1280;
     public static final int SCREEN_HEIGHT = 960;
 
+
+    public static DifferentialEquation equation;
+    public static Function analyticSolution;
+    public static ArrayList<Dot> methodSolutionDots;
+
+    public static double startX;
+    public static double endX;
+
+    public static double minY = Double.MAX_VALUE;
+    public static double maxY = Double.MIN_VALUE;
+
     public static ArrayList<Spline> splines;
 
-    public Function getFunction(int functionNumber) {
-        Function function;
-
-        switch (functionNumber) {
-            case 0:
-                function =  new Function() {
-                    @Override
-                    public double get(double x) {
-                        return Math.pow(x, 2) - 2 * x - 4;
-                    }
-
-                    @Override
-                    public String getFormula() {
-                        return "x^2 - 2x - 4";
-                    }
-
-                };
-                break;
-            case 1:
-                function = new Function() {
-                    @Override
-                    public double get(double x) {
-                        return Math.sin(x);
-                    }
-
-                    @Override
-                    public String getFormula() {
-                        return "sin(x)";
-                    }
-                };
-                break;
-            case 2:
-                function = new Function() {
-                    @Override
-                    public double get(double x) {
-                        return Math.sqrt(x);
-                    }
-
-                    @Override
-                    public String getFormula() {
-                        return "sqrt(x)";
-                    }
-                };
-                break;
-            default:
-                function = new Function() {
-                    @Override
-                    public double get(double x) {
-                        return -0.2 * Math.pow(x, 3) + 1.3 * Math.pow(x, 2) - 0.7 * x + 0.5;
-                    }
-
-                    @Override
-                    public String getFormula() {
-                        return "-0.2x^3 + 1.3x^2 - 0.7x + 0.5";
-                    }
-                };
-                break;
-        }
-        return function;
-    }
 
     @Override
     public void start(Stage primaryStage) throws Exception {
 
+        for (Dot dot: methodSolutionDots) {
+            if (dot.getY() > maxY)
+                maxY = dot.getY();
+            if (dot.getY() < minY)
+                minY = dot.getY();
+        }
+
         //Оси
-        NumberAxis xAxis = new NumberAxis(-10, 15, 0.1);
+        NumberAxis xAxis = new NumberAxis(startX - 0.1*startX, endX + 0.1*endX, 0.1);
         xAxis.setLabel("x");
-        NumberAxis yAxis = new NumberAxis(-10, 15, 0.1);
+        NumberAxis yAxis = new NumberAxis(minY - 0.1*minY, maxY + 0.1*maxY, 0.1);
         yAxis.setLabel("y");
 
         LineChart lineChart = new LineChart(xAxis, yAxis);
 
         //График исходной функции
         XYChart.Series functionSeries = new XYChart.Series();
-        functionSeries.setName("Original function: " + getFunction(FUNCTION_NUMBER).getFormula());
+        functionSeries.setName("Original function: " + equation);
 
-        ArrayList<Dot> dots = getFunction(FUNCTION_NUMBER).getDots(120, -7, 15, false);
+        ArrayList<Dot> dots = analyticSolution.getDots((int)(endX - startX)*50, startX, endX, false);
+
         for (Dot dot: dots) {
             functionSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
         }
@@ -119,12 +63,8 @@ public class GraphBuilder extends Application {
         //Точки
         XYChart.Series dotSeries = new XYChart.Series();
         dotSeries.setName("Dots to interpolate");
-        if (FUNCTION_NUMBER == 2)
-            dots = getFunction(FUNCTION_NUMBER).getDots(DOT_AMOUNT, .1, RIGHT_INTERPOLATION_BORDER, MAKE_ERRORS);
-        else
-            dots = getFunction(FUNCTION_NUMBER).getDots(DOT_AMOUNT, LEFT_INTERPOLATION_BORDER, RIGHT_INTERPOLATION_BORDER, MAKE_ERRORS);
 
-        for (Dot dot: dots) {
+        for (Dot dot: methodSolutionDots) {
             dotSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
         }
 
@@ -135,10 +75,10 @@ public class GraphBuilder extends Application {
         interpolationSeries.setName("Interpolation");
 
         SplineSolver solver = new SplineSolver();
-        splines = solver.getSplines(dots);
+        splines = solver.getSplines(methodSolutionDots);
 
         for(Spline spline: splines) {
-            dots = spline.getDots(35, spline.getLeftBorder(), spline.getRightBorder(), false);
+            dots = spline.getDots(6, spline.getLeftBorder(), spline.getRightBorder(), false);
             for (Dot dot: dots) {
                 interpolationSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
             }
@@ -174,43 +114,22 @@ public class GraphBuilder extends Application {
         //Displaying the contents of the stage
         primaryStage.show();
 
-        Runnable runnable = new Runnable() {
-            @Override
-            public void run() {
-                Scanner in = new Scanner(System.in);
-                while (true) {
-                    System.out.println("Enter X value:");
-                    String input = in.nextLine();
-                    double x;
-                    try {
-                        x = Double.parseDouble(input);
-                    } catch (NumberFormatException e){
-                        System.out.println("Wrong input!");
-                        continue;
-                    }
-
-                    boolean splineFound = false;
-                    for (Spline spline: splines) {
-                        if (spline.getLeftBorder() <= x && spline.getRightBorder() >= x) {
-                            splineFound = true;
-                            System.out.println("Function value: " + spline.get(x));
-                        }
-                    }
-                    if(!splineFound) {
-                        System.out.println("X value is not in spline area!");
-                    }
-                }
-            }
-        };
-
-        Thread thread = new Thread(runnable);
-        thread.start();
     }
 
     public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        ConsoleHandler handler = new ConsoleHandler();
+        DifferentialEquationSolutionInformation info = handler.handleInput(in);
+
+        equation = info.getEquation();
+        analyticSolution = info.getAnalyticSolutionFunction();
+        methodSolutionDots = info.getDots();
+        startX = info.getStartX();
+        endX = info.getEndX();
+        System.out.println("Building graph...");
+        in.close();
+
         launch();
-
-
     }
 
 

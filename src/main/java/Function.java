@@ -10,6 +10,8 @@ public abstract class Function {
         double x = a;
         double step = (b - a) / ((double) amount);
 
+        dots.add(new Dot(x, get(x)));
+
         for (int i = 0; i < amount; i++) {
             x += step;
 
