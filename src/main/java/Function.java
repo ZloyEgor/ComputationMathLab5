@@ -14,6 +14,7 @@ public abstract class Function {
 
         for (int i = 0; i < amount; i++) {
             x += step;
+            x = Math.round(x * (1 / step)) / (1/step);
 
             if(!makeError)
                 dots.add(new Dot(x, get(x)));

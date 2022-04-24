@@ -29,7 +29,8 @@ public class GraphBuilder extends Application {
 
     public static final boolean PRINT_DOTS = false;
 
-    public static ArrayList<Spline> splines;
+    public static ArrayList<Spline> solverSplines;
+    public static ArrayList<Spline> analyticFunctionSplines;
 
 
     @Override
@@ -54,24 +55,27 @@ public class GraphBuilder extends Application {
         XYChart.Series functionSeries = new XYChart.Series();
         functionSeries.setName("Original function: " + equation);
 
-        ArrayList<Dot> dots = analyticSolution.getDots((int)(endX - startX)*25, startX, endX, false);
+        SplineSolver solver = new SplineSolver();
+        ArrayList<Dot> dots;
 
-        for (Dot dot: dots) {
-            functionSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
+        analyticFunctionSplines = solver.getSplines(analyticSolution.getDots((int)(endX - startX)*10, startX, endX, false));
+
+        for (Spline spline: analyticFunctionSplines) {
+            dots = spline.getDots(6, spline.getLeftBorder(), spline.getRightBorder(), false);
+            for (Dot dot: dots) {
+                functionSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
+            }
         }
-
         lineChart.getData().add(functionSeries);
 
 
-
-        //Интерполяция
+        //Интерполяция численного метода
         XYChart.Series interpolationSeries = new XYChart.Series();
         interpolationSeries.setName("Interpolation");
 
-        SplineSolver solver = new SplineSolver();
-        splines = solver.getSplines(methodSolutionDots);
+        solverSplines = solver.getSplines(methodSolutionDots);
 
-        for(Spline spline: splines) {
+        for(Spline spline: solverSplines) {
             dots = spline.getDots(6, spline.getLeftBorder(), spline.getRightBorder(), false);
             for (Dot dot: dots) {
                 interpolationSeries.getData().add(new XYChart.Data<>(dot.getX(), dot.getY()));
@@ -121,6 +125,51 @@ public class GraphBuilder extends Application {
         //Displaying the contents of the stage
         primaryStage.show();
 
+        Runnable runnable = () -> {
+            Scanner in = new Scanner(System.in);
+            while (true) {
+                System.out.println("Enter X value:");
+                String input = in.nextLine();
+                double x;
+                try {
+                    x = Double.parseDouble(input);
+                } catch (NumberFormatException e){
+                    System.out.println("Wrong input!");
+                    continue;
+                }
+
+                double analyticFunctionValue = 0, solverFunctionValue = 0;
+                boolean splineFound = false;
+
+                for (Spline spline: analyticFunctionSplines) {
+                    if (spline.getLeftBorder() <= x && spline.getRightBorder() >= x) {
+                        splineFound = true;
+                        analyticFunctionValue = spline.get(x);
+                        System.out.println("Analytic function value:\t" + analyticFunctionValue);
+                        break;
+                    }
+                }
+
+                for (Spline spline: solverSplines) {
+                    if (spline.getLeftBorder() <= x && spline.getRightBorder() >= x) {
+                        splineFound = true;
+                        solverFunctionValue = spline.get(x);
+                        System.out.println("Solver function value:\t" + solverFunctionValue);
+                        break;
+                    }
+                }
+
+                if(!splineFound) {
+                    System.out.println("X value is not in spline area!");
+                    continue;
+                }
+                System.out.println("Error absolute value:\t" + Math.abs(analyticFunctionValue - solverFunctionValue));
+            }
+        };
+
+        Thread thread = new Thread(runnable);
+        thread.start();
+
     }
 
     public static void main(String[] args) {
@@ -134,7 +183,6 @@ public class GraphBuilder extends Application {
         startX = info.getStartX();
         endX = info.getEndX();
         System.out.println("Building graph...");
-        in.close();
 
         launch();
     }
